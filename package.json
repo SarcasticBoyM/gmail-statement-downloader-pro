@@ -1,0 +1,11 @@
+{
+  "name": "gmail-statement-downloader-pro",
+  "version": "2.1.0",
+  "description": "No-Python Google Apps Script tool to download credit card and bank statements from Gmail into Google Drive.",
+  "private": false,
+  "scripts": {
+    "info": "echo 'This is a Google Apps Script project. Copy src/Code.gs to script.google.com or use clasp.'"
+  },
+  "keywords": ["gmail", "google-apps-script", "bank-statement", "credit-card", "drive", "ca", "auditor"],
+  "license": "MIT"
+}

@@ -1,0 +1,9 @@
+.DS_Store
+.env
+*.zip
+*.log
+node_modules/
+credentials.json
+token.json
+*.pdf
+*.csv
