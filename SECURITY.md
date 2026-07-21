@@ -1,12 +1,17 @@
-# Security Policy
+# Security and Privacy
 
-## Reporting a vulnerability
+## Sensitive data
 
-Please open a private security advisory on GitHub or contact the maintainer.
+Never commit or upload:
 
-## Important security notes
+- Real bank statements
+- Customer names and contact details
+- Bank account numbers
+- Transaction exports containing confidential business information
+- API keys, passwords, tokens, or credentials
 
-- Never upload your downloaded bank statements to GitHub.
-- Never commit Google OAuth credentials or personal data.
-- This project runs inside your own Google account.
-- Review Gmail and Drive permissions before authorizing.
+Use anonymized sample data when reporting bugs.
+
+## Reporting a security issue
+
+Do not open a public issue containing confidential financial data. Contact the repository owner privately and provide only the minimum anonymized information needed to reproduce the issue.

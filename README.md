@@ -1,93 +1,118 @@
-# Gmail Statement Downloader Pro
+# Google Sheets Bank Reconciliation for Vyapar
 
-A no-Python, Google Apps Script tool that downloads credit card statements and bank account statements from Gmail into Google Drive, bank-wise, with duplicate tracking, logs, dashboard, and a one-click CA package ZIP.
+A custom Google Apps Script that reconciles two Axis Bank statement sheets with Vyapar payment entries inside the same Google Sheets workbook.
+
+The script is designed for business reconciliation workflows that need date-tolerance matching, cheque lifecycle handling, GPay grouping, party-name matching, bounced-cheque detection, self-account separation, and export-ready missing-entry reports.
 
 ## Features
 
-- Credit card statement download
-- Bank account statement download
-- Bank add, remove, edit from Google Sheet config
-- Duplicate detection using Gmail message ID + attachment name
-- Bank-wise Google Drive folders
-- Logs, history, and dashboard sheets
-- One Click CA Package ZIP
-- CSV summary for CA/auditor
-- No Python or desktop installation required
+- Reconciles two bank statement sheets against `VYAPAR_PAYMENT_IN`
+- Normal transactions matched within **±3 days**
+- Payment Type decides the target bank account
+- GPay matching:
+  - same-day individual match first
+  - next-day individual match second
+  - grouped match only for remaining entries
+- Cheque matching:
+  - same-date amount match first
+  - duplicate amount resolved using cheque number
+  - searches up to ±10 days
+  - extended cheque-number + amount search up to 30 days
+  - leading-zero-safe cheque numbers (`000692` = `692`)
+  - supports deposit → bounce → redeposit → final clearance lifecycle
+- Party name vs bank narration similarity for duplicate/tie resolution
+- Detects and separates cheque-bounced transactions
+- Detects and separates self-account transfers
+- Generates party-wise Vyapar and bank summary
+- Generates an import-ready missing-entry report for Payment-In and Payment-Out
+- Prevents one bank transaction from being matched more than once
+- Writes cheque/reference numbers as plain text, without currency formatting, while preserving leading zeroes
 
-## Quick Start
+## Required Workbook Sheets
 
-1. Open Google Apps Script: https://script.google.com
-2. Create a new project.
-3. Copy `src/Code.gs` into the Apps Script editor.
-4. Save the project.
-5. Run `setupBankConfig` once.
-6. Allow Gmail and Drive permissions.
-7. Open the config sheet link from Execution log.
-8. Edit banks in the `Banks` sheet.
-9. Run `downloadAllStatements` or `createCAPackage`.
+The Google Sheets workbook must contain these tabs:
 
-## Main Functions
+1. `Balaji Traders Axis Bank-1213`
+2. `Balaji Traders Axis Bank-2224`
+3. `VYAPAR_PAYMENT_IN`
 
-| Function | Purpose |
-|---|---|
-| `setupBankConfig()` | Creates/opens config spreadsheet |
-| `downloadCreditCards()` | Downloads only credit card statements |
-| `downloadBankStatements()` | Downloads only bank account statements |
-| `downloadAllStatements()` | Downloads all enabled statement types |
-| `createCAPackage()` | Downloads missing statements and creates a CA ZIP |
-| `openDownloadFolder()` | Logs the Drive folder link |
-| `refreshDashboard()` | Updates dashboard stats |
+The workbook file name can be anything. Only the sheet/tab names above are used by default.
 
-## Bank Configuration
+## Supported Vyapar Columns
 
-Open the generated Google Sheet and edit the `Banks` tab.
+The script supports the current column format:
 
-| Column | Example | Notes |
-|---|---|---|
-| Bank | HDFC Bank | Bank display name |
-| Type | CREDIT_CARD | Use `CREDIT_CARD` or `BANK_STATEMENT` |
-| Query | from:hdfcbank filename:pdf statement | Gmail search query |
-| Enabled | YES | Set `NO` to disable |
-| Notes | optional | Your notes |
+- `Date`
+- `Reference No`
+- `Party Name`
+- `Type`
+- `Payment Type`
+- `Received`
 
-## CA Package
+It also contains aliases for older headings such as `Ref No`, `Party`, `Entry Type`, and `Total Amt`.
 
-Run `createCAPackage()` to create a ZIP file in Google Drive. The ZIP includes statement PDFs and `CA_Statement_Summary.csv`.
+## Generated Report Sheets
 
-## Folder Structure in Drive
+Running the reconciliation creates or refreshes:
 
-```text
-Gmail Statement Downloader Pro/
-├── Credit Cards/
-├── Bank Statements/
-└── CA Packages/
+- `RECONCILIATION_REPORT`
+- `UNMATCHED_BANK_ENTRIES`
+- `SELF_ACCOUNT_ENTRIES`
+- `CHEQUE_BOUNCED_ENTRIES`
+- `PARTY_LEDGER_SUMMARY`
+- `VYAPAR_MISSING_ENTRIES`
+
+The import-ready sheet contains:
+
+- `Vyapar Date`
+- `Type`
+- `Suggested Party Name`
+- `Amount`
+- `Bank Account Type`
+- `Bank Narration`
+
+`Payment Type` is intentionally excluded. `Bank Account Type` shows the exact source sheet: `Balaji Traders Axis Bank-1213` or `Balaji Traders Axis Bank-2224`.
+
+## Installation
+
+1. Open the target Google Sheets workbook.
+2. Go to **Extensions → Apps Script**.
+3. Delete the existing content in `Code.gs`.
+4. Copy the contents of this repository's `Code.gs` into the Apps Script editor.
+5. Save the project.
+6. Run `runReconciliation` once and allow the requested permissions.
+7. Reload the Google Sheet.
+8. Use **RECO → Run Reconciliation**.
+
+## Configuration
+
+Sheet names and matching thresholds are at the top of `Code.gs` inside `RECO_CONFIG`.
+
+Common settings:
+
+```javascript
+const RECO_CONFIG = {
+  SHEET_1213: 'Balaji Traders Axis Bank-1213',
+  SHEET_2224: 'Balaji Traders Axis Bank-2224',
+  SHEET_VYAPAR: 'VYAPAR_PAYMENT_IN',
+  DIRECT_DATE_TOLERANCE_DAYS: 3,
+  CHEQUE_PRIMARY_DAYS: 10,
+  CHEQUE_FALLBACK_DAYS: 30,
+  GPAY_MAX_DAY_OFFSET: 1
+};
 ```
 
-## Privacy & Security
+## Important Notes
 
-This tool runs inside your own Google account using Google Apps Script. It does not send statements to any external server. Files are saved only in your Google Drive.
+- Test the script on a copy of the workbook before using it on live accounting data.
+- Do not publish real bank statements, customer data, account numbers, or transaction exports in this repository.
+- Keep sample files anonymized.
+- The script does not send workbook data to an external API.
 
-## Troubleshooting
+## Version
 
-### `Cannot call SpreadsheetApp.getUi()`
-This happens in standalone script context. The project logs the sheet/folder link in Execution log.
+Current repository version: **1.1.0**, based on reconciliation script V18.
 
-### No statements downloaded
-Check that:
-- `Enabled` is `YES`
-- Gmail query is correct
-- matching emails have PDF attachments
-- date filters in Settings are blank or valid
+## Disclaimer
 
-## Roadmap
-
-- Sidebar UI
-- Progress bar
-- Scheduled monthly downloads
-- One-click email to CA
-- Excel summary
-- More default bank query templates
-
-## License
-
-MIT
+This script assists with reconciliation but does not replace accountant review. Review unmatched, manual-check, cheque-bounced, and export-ready entries before posting them into accounting software.
